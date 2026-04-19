@@ -1046,7 +1046,7 @@
   <script>
     // ─── Constants ───────────────────────────────────────────────
     const STORAGE_KEY = 'anthropic_key';
-    const MODEL = 'claude-sonnet-4-20250514';
+    const MODEL = 'claude-sonnet-4-5-20250929';
     const SYSTEM_PROMPT = `You are an elite equity research analyst. Always use web_search to get REAL-TIME data before any analysis. Search for: current stock price, P/E ratio, recent earnings, RSI/MACD indicators, analyst ratings, recent news and sentiment.
 
 Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this exact structure:
@@ -1220,7 +1220,7 @@ Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this
           headers: {
             'Content-Type': 'application/json',
             'anthropic-version': '2023-06-01',
-            'anthropic-beta': 'interleaved-thinking-2025-05-14',
+            'anthropic-beta': 'web-search-2025-03-05',
             'x-api-key': key,
             'anthropic-dangerous-direct-browser-access': 'true'
           },
