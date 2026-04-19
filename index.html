@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equity Research AI — Real-Time Stock Analysis</title>
+<meta name="description" content="AI-powered equity research with real-time web search. Fundamental, technical and sentiment analysis for AAPL, NVDA, TSLA, INTC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000;
+  --surface:rgba(255,255,255,0.05);
+  --surface-hover:rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.10);
+  --border-bright:rgba(255,255,255,0.18);
+  --text-primary:#F5F5F7;
+  --text-secondary:#86868B;
+  --accent-blue:#0071E3;
+  --accent-blue-hover:#0077ED;
+  --accent-green:#34C759;
+  --accent-red:#FF3B30;
+  --accent-yellow:#FF9F0A;
+  --accent-purple:#BF5AF2;
+  --font:"Inter",-apple-system,BlinkMacSystemFont,sans-serif;
+  --radius:18px;
+  --radius-sm:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text-primary);font-family:var(--font);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── Noise overlay ── */
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+
+/* ── Gradient orbs ── */
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+.orb-1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,113,227,0.15),transparent 70%);top:-200px;left:-100px}
+.orb-2{width:500px;height:500px;background:radial-gradient(circle,rgba(191,90,242,0.10),transparent 70%);bottom:-100px;right:-100px}
+
+/* ── Layout ── */
+.wrapper{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 20px 60px}
+
+/* ── Header ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:28px 0 20px}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-.3px}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent-blue);box-shadow:0 0 12px var(--accent-blue);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(0.85)}}
+.btn-reset{background:none;border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s}
+.btn-reset:hover{border-color:var(--border-bright);color:var(--text-primary)}
+
+/* ── API Key modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:#111;border:1px solid var(--border-bright);border-radius:24px;padding:40px;max-width:460px;width:100%;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal h2{font-size:22px;font-weight:700;margin-bottom:8px}
+.modal p{color:var(--text-secondary);font-size:14px;line-height:1.6;margin-bottom:24px}
+.modal p a{color:var(--accent-blue);text-decoration:none}
+.modal p a:hover{text-decoration:underline}
+.modal label{font-size:13px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:8px}
+.modal input{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text-primary);font-size:14px;font-family:monospace;outline:none;transition:border-color .2s}
+.modal input:focus{border-color:var(--accent-blue)}
+.btn-save{margin-top:16px;width:100%;background:var(--accent-blue);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-save:hover{background:var(--accent-blue-hover)}
+.btn-save:active{transform:scale(0.97)}
+
+/* ── Hero section ── */
+.hero{text-align:center;padding:48px 0 40px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.25);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--accent-green);margin-bottom:24px}
+.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent-green);animation:pulse 2s infinite}
+.hero h1{font-size:clamp(36px,6vw,64px);font-weight:700;letter-spacing:-2px;line-height:1.05;margin-bottom:16px;background:linear-gradient(135deg,#fff 40%,#86868B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:17px;color:var(--text-secondary);max-width:500px;margin:0 auto 40px;line-height:1.6}
+
+/* ── Ticker selector ── */
+.label{font-size:13px;font-weight:500;color:var(--text-secondary);letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px}
+.tickers{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:32px}
+.ticker-btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 20px;font-size:15px;font-weight:500;color:var(--text-primary);cursor:pointer;transition:all .25s;user-select:none}
+.ticker-btn:hover{background:var(--surface-hover);border-color:var(--border-bright);transform:translateY(-2px)}
+.ticker-btn.active{background:rgba(0,113,227,0.18);border-color:rgba(0,113,227,0.5);color:#fff;box-shadow:0 0 24px rgba(0,113,227,0.15)}
+.ticker-btn:active{transform:scale(0.97)}
+.ticker-icon{font-size:20px}
+
+/* ── Analyse button ── */
+.btn-analyse{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent-blue);color:#fff;border:none;border-radius:14px;padding:18px 48px;font-size:16px;font-weight:600;cursor:pointer;transition:all .25s;margin:0 auto;min-width:240px;position:relative;overflow:hidden}
+.btn-analyse:hover:not(:disabled){background:var(--accent-blue-hover);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,113,227,0.4)}
+.btn-analyse:active:not(:disabled){transform:scale(0.97)}
+.btn-analyse:disabled{opacity:.6;cursor:not-allowed}
+.btn-analyse .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:none}
+.btn-analyse.loading .spinner{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Status bar ── */
+.status-bar{text-align:center;min-height:28px;margin-top:20px}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent-blue);animation:pulse 1.5s infinite}
+
+/* ── Results ── */
+.results{margin-top:48px}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.results-title{font-size:22px;font-weight:700}
+.results-meta{font-size:12px;color:var(--text-secondary)}
+
+/* ── Cards ── */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;backdrop-filter:blur(20px);opacity:0;transform:translateY(20px);animation:fadeInUp .4s ease forwards}
+@keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
+.card:nth-child(1){animation-delay:.05s}
+.card:nth-child(2){animation-delay:.12s}
+.card:nth-child(3){animation-delay:.19s}
+.card:nth-child(4){animation-delay:.26s}
+.card:nth-child(5){animation-delay:.33s;grid-column:1/-1}
+.card-header{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.card-icon{font-size:18px}
+.card-title{font-size:14px;font-weight:600;color:var(--text-secondary);letter-spacing:.3px}
+.card-ticker{margin-left:auto;font-size:11px;font-weight:700;background:rgba(0,113,227,0.2);color:var(--accent-blue);padding:3px 9px;border-radius:6px}
+
+/* Fundamentals */
+.metrics-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.metric{flex:1;min-width:80px;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px}
+.metric-label{font-size:10px;color:var(--text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.metric-value{font-size:18px;font-weight:700}
+
+/* Score bar */
+.score-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.score-label{font-size:12px;color:var(--text-secondary);white-space:nowrap}
+.score-track{flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.score-fill{height:100%;border-radius:3px;width:0;transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.score-fill.green{background:linear-gradient(90deg,var(--accent-green),#30D158)}
+.score-fill.blue{background:linear-gradient(90deg,var(--accent-blue),#34AADC)}
+.score-fill.yellow{background:linear-gradient(90deg,var(--accent-yellow),#FFD60A)}
+.score-num{font-size:13px;font-weight:700;white-space:nowrap}
+.card-summary{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px}
+
+/* Technicals */
+.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tech-item{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px}
+.tech-item-label{font-size:10px;color:var(--text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.tech-item-value{font-size:15px;font-weight:600}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+.tag.bull{background:rgba(52,199,89,0.15);color:var(--accent-green)}
+.tag.bear{background:rgba(255,59,48,0.15);color:var(--accent-red)}
+.tag.neutral{background:rgba(255,255,255,0.08);color:var(--text-secondary)}
+
+/* Sentiment */
+.sentiment-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px;gap:2px}
+.sent-pos,.sent-neu,.sent-neg{height:100%;border-radius:5px;transition:width 1s ease}
+.sent-pos{background:var(--accent-green)}
+.sent-neu{background:var(--text-secondary)}
+.sent-neg{background:var(--accent-red)}
+.sentiment-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-bottom:14px}
+.sentiment-label span{font-weight:600}
+.news-list{list-style:none}
+.news-list li{font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:6px}
+.news-list li:last-child{border-bottom:none}
+.news-list li::before{content:"•";color:var(--accent-blue);flex-shrink:0}
+
+/* Forecast */
+.forecast-price-row{display:flex;align-items:flex-end;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.forecast-current{font-size:13px;color:var(--text-secondary)}
+.forecast-current strong{display:block;font-size:28px;font-weight:700;color:var(--text-primary)}
+.forecast-target{font-size:13px;color:var(--text-secondary)}
+.forecast-target strong{display:block;font-size:28px;font-weight:700}
+.upside-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:700;margin-left:4px}
+.upside-badge.pos{background:rgba(52,199,89,0.15);color:var(--accent-green)}
+.upside-badge.neg{background:rgba(255,59,48,0.15);color:var(--accent-red)}
+.signal-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-top:12px}
+.signal-chip.buy{background:rgba(52,199,89,0.15);color:var(--accent-green);border:1px solid rgba(52,199,89,0.3)}
+.signal-chip.sell{background:rgba(255,59,48,0.15);color:var(--accent-red);border:1px solid rgba(255,59,48,0.3)}
+.signal-chip.hold{background:rgba(255,159,10,0.12);color:var(--accent-yellow);border:1px solid rgba(255,159,10,0.3)}
+.rationale{font-size:12px;color:var(--text-secondary);margin-top:12px;line-height:1.6}
+
+/* Comparison */
+.comp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.comp-item{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;transition:background .2s}
+.comp-item:hover{background:rgba(255,255,255,0.07)}
+.comp-rank{font-size:20px;margin-bottom:4px}
+.comp-ticker{font-size:16px;font-weight:700;margin-bottom:4px}
+.comp-return{font-size:13px;font-weight:600;margin-bottom:4px}
+.comp-risk{font-size:11px;color:var(--text-secondary)}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* Error toast */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a1a;border:1px solid var(--border-bright);border-radius:12px;padding:14px 22px;font-size:14px;font-weight:500;z-index:200;transition:transform .35s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:10px;max-width:400px;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.error{border-color:rgba(255,59,48,0.4);color:var(--accent-red)}
+.toast.info{border-color:rgba(0,113,227,0.4);color:#6AC4FB}
+
+/* Raw fallback */
+.raw-block{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:20px;font-family:monospace;font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;margin-top:16px}
+
+/* Responsive */
+@media(max-width:768px){
+  .cards-grid{grid-template-columns:1fr}
+  .card:nth-child(5){grid-column:auto}
+  .comp-grid{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:36px}
+}
+@media(max-width:390px){
+  .tickers{gap:8px}
+  .ticker-btn{padding:10px 14px;font-size:14px}
+  .forecast-price-row{flex-direction:column;gap:8px}
+  .comp-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h2>🔑 API Ключ</h2>
+    <p>Введите ваш Anthropic API ключ. Он хранится только в локальном хранилище браузера.<br>
+    Получить ключ: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a></p>
+    <label for="apiKeyInput">Anthropic API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+    <button class="btn-save" id="btnSaveKey">Сохранить и продолжить</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Equity Research AI
+    </div>
+    <button class="btn-reset" id="btnResetKey">Сменить ключ</button>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge"><span></span>Powered by Claude + Web Search</div>
+    <h1>Анализ акций<br>в реальном времени</h1>
+    <p>ИИ-аналитик собирает актуальные данные из интернета и строит полный инвестиционный отчёт за секунды.</p>
+
+    <p class="label">Выберите компанию</p>
+    <div class="tickers" id="tickerGrid">
+      <button class="ticker-btn active" data-ticker="AAPL"><span class="ticker-icon">🍎</span> Apple (AAPL)</button>
+      <button class="ticker-btn" data-ticker="NVDA"><span class="ticker-icon">🟢</span> NVIDIA (NVDA)</button>
+      <button class="ticker-btn" data-ticker="TSLA"><span class="ticker-icon">⚡</span> Tesla (TSLA)</button>
+      <button class="ticker-btn" data-ticker="INTC"><span class="ticker-icon">🔵</span> Intel (INTC)</button>
+      <button class="ticker-btn" data-ticker="ALL"><span class="ticker-icon">📊</span> Сравнить все</button>
+    </div>
+
+    <button class="btn-analyse" id="btnAnalyse">
+      <div class="spinner"></div>
+      <span id="btnLabel">🔍 Анализировать рынок</span>
+    </button>
+    <div class="status-bar">
+      <div class="status" id="statusBar" style="display:none">
+        <div class="status-dot"></div>
+        <span id="statusText">Инициализация...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="results" id="results" style="display:none">
+    <div class="results-header">
+      <div class="results-title" id="resultsTitle">Анализ завершён</div>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+    <div class="cards-grid" id="cardsGrid"></div>
+    <div class="raw-block" id="rawBlock" style="display:none"></div>
+  </section>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────
+const STORAGE_KEY = 'anthropic_key';
+const MODEL = 'claude-sonnet-4-5';
+const SYSTEM_PROMPT = `You are an elite equity research analyst. Always use web_search to get REAL-TIME data before any analysis. Search for: current stock price, P/E ratio, recent earnings, RSI/MACD indicators, analyst ratings, recent news and sentiment.
+
+Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this exact structure:
+{
+  "ticker": "AAPL",
+  "company": "Apple Inc.",
+  "currentPrice": 189.30,
+  "currency": "USD",
+  "fundamentals": {
+    "pe_ratio": 28.5,
+    "eps": 6.43,
+    "revenue_growth": "8.2%",
+    "profit_margin": "25.3%",
+    "debt_to_equity": 1.8,
+    "score": 8.2,
+    "summary": "текст на русском"
+  },
+  "technicals": {
+    "rsi": 58.3,
+    "rsi_signal": "нейтрально",
+    "macd_signal": "бычий",
+    "support": 178.0,
+    "resistance": 195.0,
+    "trend": "восходящий",
+    "score": 7.5,
+    "summary": "текст"
+  },
+  "sentiment": {
+    "positive_pct": 62,
+    "neutral_pct": 24,
+    "negative_pct": 14,
+    "news": ["заголовок 1", "заголовок 2", "заголовок 3"],
+    "analyst_consensus": "Покупать",
+    "score": 7.8
+  },
+  "forecast": {
+    "target_price": 204.50,
+    "upside_pct": 8.03,
+    "timeframe": "3 месяца",
+    "confidence": 74,
+    "signal": "ПОКУПАТЬ",
+    "signal_color": "green",
+    "rationale": "текст обоснования"
+  },
+  "comparison": [
+    {"ticker": "NVDA", "rank": 1, "expected_return": "22%", "risk": "высокий"},
+    {"ticker": "AAPL", "rank": 2, "expected_return": "8%", "risk": "низкий"},
+    {"ticker": "TSLA", "rank": 3, "expected_return": "15%", "risk": "очень высокий"},
+    {"ticker": "INTC", "rank": 4, "expected_return": "-5%", "risk": "высокий"}
+  ],
+  "lastUpdated": "ISO timestamp"
+}`;
+
+// ─── State ───────────────────────────────────────────────────
+let selectedTicker = 'AAPL';
+let isLoading = false;
+let abortController = null;
+
+// ─── DOM refs ────────────────────────────────────────────────
+const apiModal    = document.getElementById('apiModal');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const btnSaveKey  = document.getElementById('btnSaveKey');
+const btnResetKey = document.getElementById('btnResetKey');
+const btnAnalyse  = document.getElementById('btnAnalyse');
+const btnLabel    = document.getElementById('btnLabel');
+const statusBar   = document.getElementById('statusBar');
+const statusText  = document.getElementById('statusText');
+const results     = document.getElementById('results');
+const cardsGrid   = document.getElementById('cardsGrid');
+const rawBlock    = document.getElementById('rawBlock');
+const toast       = document.getElementById('toast');
+const tickerGrid  = document.getElementById('tickerGrid');
+
+// ─── API Key ─────────────────────────────────────────────────
+function getKey(){ return localStorage.getItem(STORAGE_KEY); }
+function saveKey(k){ localStorage.setItem(STORAGE_KEY, k.trim()); }
+function clearKey(){ localStorage.removeItem(STORAGE_KEY); }
+
+function checkKey(){
+  if(!getKey()){ apiModal.classList.remove('hidden'); }
+  else { apiModal.classList.add('hidden'); }
+}
+
+btnSaveKey.addEventListener('click', () => {
+  const v = apiKeyInput.value.trim();
+  if(!v.startsWith('sk-ant')){ showToast('Ключ должен начинаться с sk-ant-…', 'error'); return; }
+  saveKey(v);
+  apiModal.classList.add('hidden');
+  showToast('Ключ сохранён ✓', 'info');
+});
+apiKeyInput.addEventListener('keydown', e => { if(e.key==='Enter') btnSaveKey.click(); });
+btnResetKey.addEventListener('click', () => { clearKey(); apiKeyInput.value=''; apiModal.classList.remove('hidden'); });
+
+// ─── Ticker selection ─────────────────────────────────────────
+tickerGrid.querySelectorAll('.ticker-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tickerGrid.querySelectorAll('.ticker-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTicker = btn.dataset.ticker;
+  });
+});
+
+// ─── Toast ───────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type='info'){
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ─── Status cycling ───────────────────────────────────────────
+const STATUS_STEPS = [
+  'Подключаюсь к API…',
+  'Ищу актуальные данные…',
+  'Собираю котировки…',
+  'Анализирую фундаментал…',
+  'Проверяю технические индикаторы…',
+  'Оцениваю рыночные настроения…',
+  'Считаю прогноз…',
+  'Формирую отчёт…'
+];
+let statusIdx = 0, statusInterval = null;
+function startStatus(){
+  statusIdx = 0;
+  statusBar.style.display = 'inline-flex';
+  statusText.textContent = STATUS_STEPS[0];
+  statusInterval = setInterval(() => {
+    statusIdx = Math.min(statusIdx + 1, STATUS_STEPS.length - 1);
+    statusText.textContent = STATUS_STEPS[statusIdx];
+  }, 4500);
+}
+function stopStatus(){ clearInterval(statusInterval); statusBar.style.display = 'none'; }
+
+// ─── Button state ─────────────────────────────────────────────
+function setLoading(v){
+  isLoading = v;
+  btnAnalyse.disabled = v;
+  btnAnalyse.classList.toggle('loading', v);
+  btnLabel.textContent = v ? 'Анализирую…' : '🔍 Анализировать рынок';
+}
+
+// ─── Build user prompt ─────────────────────────────────────────
+function buildPrompt(ticker){
+  if(ticker === 'ALL'){
+    return `Perform a comprehensive real-time analysis of ALL FOUR stocks: AAPL (Apple), NVDA (NVIDIA), TSLA (Tesla), INTC (Intel). Use web_search for each. Return JSON for the most recommended single stock with complete comparison data. All text fields in Russian.`;
+  }
+  const names = {AAPL:'Apple Inc.',NVDA:'NVIDIA Corporation',TSLA:'Tesla Inc.',INTC:'Intel Corporation'};
+  return `Perform a complete real-time equity analysis for ${ticker} (${names[ticker]||ticker}). Use web_search to fetch current price, P/E, EPS, RSI, MACD, support/resistance, recent earnings, analyst ratings, and latest news sentiment. Include comparison of all four stocks (AAPL, NVDA, TSLA, INTC) in the comparison array, ranked by expected return. All text/summary fields must be in Russian. Return only valid JSON.`;
+}
+
+// ─── Main analysis call ────────────────────────────────────────
+btnAnalyse.addEventListener('click', async () => {
+  if(isLoading){ abortController?.abort(); return; }
+  const key = getKey();
+  if(!key){ apiModal.classList.remove('hidden'); return; }
+
+  setLoading(true);
+  startStatus();
+  results.style.display = 'none';
+  cardsGrid.innerHTML = '';
+  rawBlock.style.display = 'none';
+
+  abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), 90000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: abortController.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'interleaved-thinking-2025-05-14',
+        'x-api-key': key
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 8000,
+        stream: true,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }],
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: buildPrompt(selectedTicker) }]
+      })
+    });
+
+    if(res.status === 401){ clearKey(); throw new Error('Неверный API ключ. Нажмите «Сменить ключ».'); }
+    if(res.status === 429){ throw new Error('Превышен лимит запросов. Подождите 30 секунд и повторите.'); }
+    if(!res.ok){ throw new Error(`Ошибка API: ${res.status} ${res.statusText}`); }
+
+    const data = await parseStream(res.body);
+    clearTimeout(timeout);
+    renderResult(data);
+
+  } catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError'){ showToast('Запрос прерван. Попробуйте снова.', 'error'); }
+    else { showToast(err.message, 'error'); console.error(err); }
+  } finally {
+    setLoading(false);
+    stopStatus();
+  }
+});
+
+// ─── Stream parser ─────────────────────────────────────────────
+async function parseStream(body){
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let accumulated = '';
+  let buf = '';
+
+  while(true){
+    const { done, value } = await reader.read();
+    if(done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+
+    for(const line of lines){
+      if(!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if(raw === '[DONE]') continue;
+      try{
+        const evt = JSON.parse(raw);
+        // Collect text deltas from content_block_delta events
+        if(evt.type === 'content_block_delta'){
+          const d = evt.delta;
+          if(d && d.type === 'text_delta') accumulated += d.text;
+        }
+      } catch(_){}
+    }
+  }
+  return accumulated;
+}
+
+// ─── JSON extraction helper ────────────────────────────────────
+function extractJSON(text){
+  // Strip possible markdown fences
+  let s = text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
+  // Find first { to last }
+  const start = s.indexOf('{');
+  const end   = s.lastIndexOf('}');
+  if(start === -1 || end === -1) throw new Error('JSON not found in response');
+  return JSON.parse(s.slice(start, end+1));
+}
+
+// ─── Render result ─────────────────────────────────────────────
+function renderResult(rawText){
+  let data;
+  try { data = extractJSON(rawText); }
+  catch(e){
+    // Fallback: show raw
+    results.style.display = 'block';
+    rawBlock.style.display = 'block';
+    rawBlock.textContent = rawText;
+    document.getElementById('resultsTitle').textContent = '⚠️ Ответ получен (raw)';
+    document.getElementById('resultsMeta').textContent = 'Не удалось парсить JSON';
+    return;
+  }
+
+  results.style.display = 'block';
+  document.getElementById('resultsTitle').textContent = `${data.company || data.ticker} — Аналитический отчёт`;
+  document.getElementById('resultsMeta').textContent = `Обновлено: ${new Date(data.lastUpdated||Date.now()).toLocaleString('ru')}`;
+
+  cardsGrid.innerHTML = `
+    ${cardFundamentals(data)}
+    ${cardTechnicals(data)}
+    ${cardSentiment(data)}
+    ${cardForecast(data)}
+    ${cardComparison(data)}
+  `;
+
+  // Animate score bars after DOM insertion
+  requestAnimationFrame(() => {
+    document.querySelectorAll('[data-width]').forEach(el => {
+      el.style.width = el.dataset.width + '%';
+    });
+  });
+}
+
+// ─── Card builders ─────────────────────────────────────────────
+function cardFundamentals(d){
+  const f = d.fundamentals || {};
+  const score = f.score || 0;
+  const scoreColor = score >= 7 ? 'green' : score >= 5 ? 'blue' : 'yellow';
+  return `<div class="card">
+    <div class="card-header">
+      <span class="card-icon">📈</span>
+      <span class="card-title">ФУНДАМЕНТАЛЬНЫЙ АНАЛИЗ</span>
+      <span class="card-ticker">${d.ticker||''}</span>
+    </div>
+    <div class="metrics-row">
+      <div class="metric"><div class="metric-label">P/E</div><div class="metric-value">${fmt(f.pe_ratio)}</div></div>
+      <div class="metric"><div class="metric-label">EPS</div><div class="metric-value">${d.currency||'$'}${fmt(f.eps)}</div></div>
+      <div class="metric"><div class="metric-label">Rev Growth</div><div class="metric-value">${f.revenue_growth||'—'}</div></div>
+      <div class="metric"><div class="metric-label">Margin</div><div class="metric-value">${f.profit_margin||'—'}</div></div>
+    </div>
+    <div class="score-row">
+      <span class="score-label">Рейтинг</span>
+      <div class="score-track"><div class="score-fill ${scoreColor}" data-width="${score*10}" style="width:0"></div></div>
+      <span class="score-num">${score}/10</span>
+    </div>
+    <div class="card-summary">${f.summary||''}</div>
+  </div>`;
+}
+
+function cardTechnicals(d){
+  const t = d.technicals || {};
+  const rsiClass = t.rsi_signal?.includes('перекуп') ? 'bear' : t.rsi_signal?.includes('перепрод') ? 'bull' : 'neutral';
+  const macdClass = t.macd_signal?.toLowerCase().includes('бычий') || t.macd_signal?.toLowerCase().includes('buy') ? 'bull' : 'bear';
+  const score = t.score || 0;
+  return `<div class="card">
+    <div class="card-header">
+      <span class="card-icon">📊</span>
+      <span class="card-title">ТЕХНИЧЕСКИЙ АНАЛИЗ</span>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-item"><div class="tech-item-label">RSI</div><div class="tech-item-value">${fmt(t.rsi)} <span class="tag ${rsiClass}">${t.rsi_signal||''}</span></div></div>
+      <div class="tech-item"><div class="tech-item-label">MACD</div><div class="tech-item-value"><span class="tag ${macdClass}">${t.macd_signal||'—'}</span></div></div>
+      <div class="tech-item"><div class="tech-item-label">Поддержка</div><div class="tech-item-value" style="color:var(--accent-green)">$${fmt(t.support)}</div></div>
+      <div class="tech-item"><div class="tech-item-label">Сопротивление</div><div class="tech-item-value" style="color:var(--accent-red)">$${fmt(t.resistance)}</div></div>
+    </div>
+    <div class="score-row">
+      <span class="score-label">Рейтинг</span>
+      <div class="score-track"><div class="score-fill blue" data-width="${score*10}" style="width:0"></div></div>
+      <span class="score-num">${score}/10</span>
+    </div>
+    <div class="card-summary">${t.summary||''}</div>
+  </div>`;
+}
+
+function cardSentiment(d){
+  const s = d.sentiment || {};
+  const pos = s.positive_pct || 0, neu = s.neutral_pct || 0, neg = s.negative_pct || 0;
+  const news = (s.news||[]).slice(0,3).map(n=>`<li>${n}</li>`).join('');
+  const score = s.score || 0;
+  return `<div class="card">
+    <div class="card-header">
+      <span class="card-icon">💬</span>
+      <span class="card-title">РЫНОЧНЫЕ НАСТРОЕНИЯ</span>
+    </div>
+    <div class="sentiment-bar">
+      <div class="sent-pos" data-width="${pos}" style="width:0;flex:${pos}"></div>
+      <div class="sent-neu" data-width="${neu}" style="width:0;flex:${neu}"></div>
+      <div class="sent-neg" data-width="${neg}" style="width:0;flex:${neg}"></div>
+    </div>
+    <div class="sentiment-labels">
+      <span>😊 <span>${pos}%</span></span>
+      <span>😐 <span>${neu}%</span></span>
+      <span>😟 <span>${neg}%</span></span>
+    </div>
+    <ul class="news-list">${news}</ul>
+    <div class="score-row" style="margin-top:14px">
+      <span class="score-label">Консенсус: <strong>${s.analyst_consensus||'—'}</strong></span>
+      <div class="score-track"><div class="score-fill green" data-width="${score*10}" style="width:0"></div></div>
+      <span class="score-num">${score}/10</span>
+    </div>
+  </div>`;
+}
+
+function cardForecast(d){
+  const f = d.forecast || {};
+  const upside = f.upside_pct || 0;
+  const uClass = upside >= 0 ? 'pos' : 'neg';
+  const uSign  = upside >= 0 ? '+' : '';
+  const sigColor = {green:'buy', red:'sell', yellow:'hold'}[f.signal_color] || 'hold';
+  const sigEmoji = {buy:'🟢', sell:'🔴', hold:'🟡'}[sigColor];
+  const conf = f.confidence || 0;
+  return `<div class="card">
+    <div class="card-header">
+      <span class="card-icon">🎯</span>
+      <span class="card-title">ПРОГНОЗ НА ${f.timeframe||'3 МЕСЯЦА'}</span>
+    </div>
+    <div class="forecast-price-row">
+      <div class="forecast-current">
+        Текущая цена
+        <strong>${d.currency||'$'}${fmt(d.currentPrice)}</strong>
+      </div>
+      <div class="forecast-target">
+        Цель <span class="upside-badge ${uClass}">${uSign}${fmt(upside)}%</span>
+        <strong style="color:var(--accent-${upside>=0?'green':'red'})">${d.currency||'$'}${fmt(f.target_price)}</strong>
+      </div>
+    </div>
+    <div class="score-row">
+      <span class="score-label">Уверенность</span>
+      <div class="score-track"><div class="score-fill ${uClass==='pos'?'green':'yellow'}" data-width="${conf}" style="width:0"></div></div>
+      <span class="score-num">${conf}%</span>
+    </div>
+    <div><span class="signal-chip ${sigColor}">${sigEmoji} ${f.signal||'ДЕРЖАТЬ'}</span></div>
+    <div class="rationale">${f.rationale||''}</div>
+  </div>`;
+}
+
+function cardComparison(d){
+  const ranks = {1:'🥇',2:'🥈',3:'🥉',4:'4️⃣'};
+  const items = (d.comparison||[]).sort((a,b)=>a.rank-b.rank).map(c => {
+    const ret = parseFloat(c.expected_return);
+    const retColor = ret >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    return `<div class="comp-item">
+      <div class="comp-rank">${ranks[c.rank]||c.rank}</div>
+      <div class="comp-ticker">${c.ticker}</div>
+      <div class="comp-return" style="color:${retColor}">${c.expected_return}</div>
+      <div class="comp-risk">${c.risk}</div>
+    </div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="card-header">
+      <span class="card-icon">⚡</span>
+      <span class="card-title">КУДА ВЛОЖИТЬ? — СРАВНЕНИЕ</span>
+    </div>
+    <div class="comp-grid">${items}</div>
+  </div>`;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+function fmt(v){ if(v===undefined||v===null) return '—'; const n=parseFloat(v); return isNaN(n)?v:n.toLocaleString('ru',{maximumFractionDigits:2}); }
+
+// ─── Init ─────────────────────────────────────────────────────
+checkKey();
+</script>
+</body>
+</html>
