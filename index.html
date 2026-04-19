@@ -1007,7 +1007,7 @@
 
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-badge"><span></span>Powered by Claude + Web Search</div>
+      <div class="hero-badge"><span></span>Powered by Gemini 3 Flash + Google Search</div>
       <h1>Анализ акций<br>в реальном времени</h1>
       <p>ИИ-аналитик собирает актуальные данные из интернета и строит полный инвестиционный отчёт за секунды.</p>
 
@@ -1045,57 +1045,57 @@
 
   <script>
     // ─── Constants ───────────────────────────────────────────────
-    const STORAGE_KEY = 'anthropic_key';
-    const MODEL = 'claude-sonnet-4-5-20250929';
-    const SYSTEM_PROMPT = `You are an elite equity research analyst. Always use web_search to get REAL-TIME data before any analysis. Search for: current stock price, P/E ratio, recent earnings, RSI/MACD indicators, analyst ratings, recent news and sentiment.
-
+    const STORAGE_KEY = 'gemini_key_v2';
+    const MODEL = 'gemini-3-flash-preview';
+    const SYSTEM_PROMPT = `You are an elite equity research analyst. Always use Google Search to get REAL-TIME data before any analysis. Search for: current stock price, P/E ratio, recent earnings, RSI/MACD indicators, analyst ratings, recent news and sentiment.
+    
 Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this exact structure:
 {
   "ticker": "AAPL",
   "company": "Apple Inc.",
-  "currentPrice": 189.30,
+  "currentPrice": 270.30,
   "currency": "USD",
   "fundamentals": {
-    "pe_ratio": 28.5,
-    "eps": 6.43,
-    "revenue_growth": "8.2%",
-    "profit_margin": "25.3%",
-    "debt_to_equity": 1.8,
-    "score": 8.2,
+    "pe_ratio": 34.5,
+    "eps": 7.92,
+    "revenue_growth": "10.2%",
+    "profit_margin": "26.3%",
+    "debt_to_equity": 1.5,
+    "score": 8.5,
     "summary": "текст на русском"
   },
   "technicals": {
-    "rsi": 58.3,
+    "rsi": 52.3,
     "rsi_signal": "нейтрально",
     "macd_signal": "бычий",
-    "support": 178.0,
-    "resistance": 195.0,
+    "support": 250.0,
+    "resistance": 290.0,
     "trend": "восходящий",
-    "score": 7.5,
+    "score": 7.8,
     "summary": "текст"
   },
   "sentiment": {
-    "positive_pct": 62,
-    "neutral_pct": 24,
-    "negative_pct": 14,
+    "positive_pct": 68,
+    "neutral_pct": 20,
+    "negative_pct": 12,
     "news": ["заголовок 1", "заголовок 2", "заголовок 3"],
     "analyst_consensus": "Покупать",
-    "score": 7.8
+    "score": 8.0
   },
   "forecast": {
-    "target_price": 204.50,
-    "upside_pct": 8.03,
+    "target_price": 310.50,
+    "upside_pct": 12.03,
     "timeframe": "3 месяца",
-    "confidence": 74,
+    "confidence": 78,
     "signal": "ПОКУПАТЬ",
     "signal_color": "green",
     "rationale": "текст обоснования"
   },
   "comparison": [
-    {"ticker": "NVDA", "rank": 1, "expected_return": "22%", "risk": "высокий"},
-    {"ticker": "AAPL", "rank": 2, "expected_return": "8%", "risk": "низкий"},
-    {"ticker": "TSLA", "rank": 3, "expected_return": "15%", "risk": "очень высокий"},
-    {"ticker": "INTC", "rank": 4, "expected_return": "-5%", "risk": "высокий"}
+    {"ticker": "NVDA", "rank": 1, "expected_return": "25%", "risk": "высокий"},
+    {"ticker": "AAPL", "rank": 2, "expected_return": "12%", "risk": "низкий"},
+    {"ticker": "TSLA", "rank": 3, "expected_return": "18%", "risk": "высокий"},
+    {"ticker": "INTC", "rank": 4, "expected_return": "4%", "risk": "средний"}
   ],
   "lastUpdated": "ISO timestamp"
 }`;
@@ -1132,10 +1132,10 @@ Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this
 
     btnSaveKey.addEventListener('click', () => {
       const v = apiKeyInput.value.trim();
-      if (!v.startsWith('sk-ant')) { showToast('Ключ должен начинаться с sk-ant-…', 'error'); return; }
+      if (!v.startsWith('AIza')) { showToast('Ключ должен начинаться с AIza…', 'error'); return; }
       saveKey(v);
       apiModal.classList.add('hidden');
-      showToast('Ключ сохранён ✓', 'info');
+      showToast('Gemini ключ сохранён ✓', 'info');
     });
     apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnSaveKey.click(); });
     btnResetKey.addEventListener('click', () => { clearKey(); apiKeyInput.value = ''; apiModal.classList.remove('hidden'); });
@@ -1192,10 +1192,10 @@ Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this
     // ─── Build user prompt ─────────────────────────────────────────
     function buildPrompt(ticker) {
       if (ticker === 'ALL') {
-        return `Perform a comprehensive real-time analysis of ALL FOUR stocks: AAPL (Apple), NVDA (NVIDIA), TSLA (Tesla), INTC (Intel). Use web_search for each. Return JSON for the most recommended single stock with complete comparison data. All text fields in Russian.`;
+        return `Perform a comprehensive real - time analysis of ALL FOUR stocks: AAPL(Apple), NVDA(NVIDIA), TSLA(Tesla), INTC(Intel).Use web_search for each.Return JSON for the most recommended single stock with complete comparison data.All text fields in Russian.`;
       }
       const names = { AAPL: 'Apple Inc.', NVDA: 'NVIDIA Corporation', TSLA: 'Tesla Inc.', INTC: 'Intel Corporation' };
-      return `Perform a complete real-time equity analysis for ${ticker} (${names[ticker] || ticker}). Use web_search to fetch current price, P/E, EPS, RSI, MACD, support/resistance, recent earnings, analyst ratings, and latest news sentiment. Include comparison of all four stocks (AAPL, NVDA, TSLA, INTC) in the comparison array, ranked by expected return. All text/summary fields must be in Russian. Return only valid JSON.`;
+      return `Perform a complete real - time equity analysis for ${ticker}(${names[ticker] || ticker}).Use web_search to fetch current price, P / E, EPS, RSI, MACD, support / resistance, recent earnings, analyst ratings, and latest news sentiment.Include comparison of all four stocks(AAPL, NVDA, TSLA, INTC) in the comparison array, ranked by expected return.All text / summary fields must be in Russian.Return only valid JSON.`;
     }
 
     // ─── Main analysis call ────────────────────────────────────────
@@ -1211,36 +1211,35 @@ Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this
       rawBlock.style.display = 'none';
 
       abortController = new AbortController();
-      const timeout = setTimeout(() => abortController.abort(), 90000);
+      const timeout = setTimeout(() => abortController.abort(), 95000);
 
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
+        const res = await fetch(url, {
           method: 'POST',
           signal: abortController.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01',
-            'anthropic-beta': 'web-search-2025-03-05',
-            'x-api-key': key,
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 8000,
-            stream: true,
-            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }],
-            system: SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: buildPrompt(selectedTicker) }]
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ parts: [{ text: buildPrompt(selectedTicker) }] }],
+            tools: [{ googleSearch: {} }],
+            generationConfig: {
+              temperature: 0.1
+            }
           })
         });
 
-        if (res.status === 401) { clearKey(); throw new Error('Неверный API ключ. Нажмите «Сменить ключ».'); }
-        if (res.status === 429) { throw new Error('Превышен лимит запросов. Подождите 30 секунд и повторите.'); }
-        if (!res.ok) { throw new Error(`Ошибка API: ${res.status} ${res.statusText}`); }
+        if (res.status === 400) { throw new Error('Ошибка запроса или неверный ключ Gemini.'); }
+        if (res.status === 429) { throw new Error('Превышен лимит запросов Gemini. Подождите минуту.'); }
+        if (!res.ok) { throw new Error(`Ошибка API Gemini: ${res.status} ${res.statusText}`); }
 
-        const data = await parseStream(res.body);
+        const json = await res.json();
+        const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!rawText) throw new Error('Пустой ответ от Gemini.');
+
         clearTimeout(timeout);
-        renderResult(data);
+        renderResult(rawText);
 
       } catch (err) {
         clearTimeout(timeout);
@@ -1252,45 +1251,12 @@ Return analysis ONLY as valid JSON (no markdown fences, no extra text) with this
       }
     });
 
-    // ─── Stream parser ─────────────────────────────────────────────
-    async function parseStream(body) {
-      const reader = body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-      let buf = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop();
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (raw === '[DONE]') continue;
-          try {
-            const evt = JSON.parse(raw);
-            // Collect text deltas from content_block_delta events
-            if (evt.type === 'content_block_delta') {
-              const d = evt.delta;
-              if (d && d.type === 'text_delta') accumulated += d.text;
-            }
-          } catch (_) { }
-        }
-      }
-      return accumulated;
-    }
-
     // ─── JSON extraction helper ────────────────────────────────────
     function extractJSON(text) {
-      // Strip possible markdown fences
       let s = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-      // Find first { to last }
       const start = s.indexOf('{');
       const end = s.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('JSON not found in response');
+      if (start === -1 || end === -1) throw new Error('JSON не найден в ответе.');
       return JSON.parse(s.slice(start, end + 1));
     }
 
